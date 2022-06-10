@@ -314,6 +314,7 @@ static Node *escape(RegEx *re) {
         printf("*** unrecognized escape sequence [");
         fprintcp(stdout, cp);
         printf("]\n");
+        n->type = OP_NOP;
         break;
     }
     return n;
