@@ -77,7 +77,9 @@ make
 
 Both the library and command line support printing the pattern's bytecode and a graph representation in [DOT](https://en.wikipedia.org/wiki/DOT_(graph_description_language)).
 
-    ./bin/regex -gregex.dot "[^👀]🍆+|😤" ""
-    dot regex.dot -T png -o regex.png
+```bash
+./bin/regex -gregex.dot "[^👀]🍆+|😤" ""
+dot regex.dot -T png -o regex.png
+```
 
 ![](https://i.imgur.com/xiiW0Sa.png)

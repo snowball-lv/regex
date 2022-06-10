@@ -4,8 +4,6 @@ SRCS = $(wildcard src/*.c)
 OBJS = $(SRCS:src/%.c=out/%.o)
 DEPS = $(SRCS:src/%.c=out/%.d)
 
-TEST = bin/test
-
 CFLAGS = -c -O2 -MMD -I inc -Wall
 
 all: $(BIN)
