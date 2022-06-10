@@ -28,8 +28,8 @@ Compiling a pattern transforms it into an AST which in turn is used to generate 
 ```c
 RegEx re;
 Match m;
-regexcompile(&re, "[a-zA-Z0-9_]\w*");
-if (regexmatch(&re, &m, "Hello, World!")
+regexcompile(&re, "[a-zA-Z0-9_]\\w*");
+if (regexmatch(&re, &m, "Hello, World!"))
     printf("%.*s\n", m.len, m.start);
 freeregex(&re);
 ```
