@@ -25,33 +25,37 @@ Compiling a pattern transforms it into an AST which in turn is used to generate 
 
 #### Matching a single pattern:
 
-    RegEx re;
-    Match m;
-    regexcompile(&re, "[a-zA-Z0-9_]\w*");
-    if (regexmatch(&re, &m, "Hello, World!")
-        printf("%.*s\n", m.len, m.start);
-    freeregex(&re);
+```c
+RegEx re;
+Match m;
+regexcompile(&re, "[a-zA-Z0-9_]\w*");
+if (regexmatch(&re, &m, "Hello, World!")
+    printf("%.*s\n", m.len, m.start);
+freeregex(&re);
+```
 
 #### Matching multiple patterns:
 
-    enum { T_NONE, T_IF, T_WHILE, T_INT, T_ID, T_SPACE };
-    TokDef tokdefs[] = {
-        {"^if", T_IF},
-        {"^while", T_WHILE},
-        {"^[0-9]+", T_INT},
-        {"^[a-zA-Z_]\\w*", T_ID},
-        {"^\\s+", T_SPACE},
-        {0},
-    };
-    RegEx re;
-    Match m;
-    regexcompile2(&re, tokdefs);
-    while (regexmatch(&re, &m, input_string)) {
-        input_string += m.len;
-        if (m.token != T_SPACE)
-            printf("[%i] [%.*s]\n", m.token, m.len, m.start);
-    }
-    freeregex(&re);
+```c
+enum { T_NONE, T_IF, T_WHILE, T_INT, T_ID, T_SPACE };
+TokDef tokdefs[] = {
+    {"^if", T_IF},
+    {"^while", T_WHILE},
+    {"^[0-9]+", T_INT},
+    {"^[a-zA-Z_]\\w*", T_ID},
+    {"^\\s+", T_SPACE},
+    {0},
+};
+RegEx re;
+Match m;
+regexcompile2(&re, tokdefs);
+while (regexmatch(&re, &m, input_string)) {
+    input_string += m.len;
+    if (m.token != T_SPACE)
+        printf("[%i] [%.*s]\n", m.token, m.len, m.start);
+}
+freeregex(&re);
+```
 
 Avoid using `0` as an ID as it's the default value. Under the hood it just appends `\m#` to each pattern and concatenates them. In case of multiple matching tokens the one appearing first in the list will be returned.
 
@@ -59,11 +63,15 @@ Avoid using `0` as an ID as it's the default value. Under the hood it just appen
 
 See `help` for supported flags.
 
-    ./bin/regex [flags] pattern input_string
+```bash
+./bin/regex [flags] pattern input_string
+```
 
 ## Build
 
-    make
+```bash
+make
+```
 
 ## Debug
 
