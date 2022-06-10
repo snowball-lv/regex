@@ -1,5 +1,5 @@
 A UTF-8 aware regular expression implementation using VM approach.  
-For details on the approach see [articles by Rus Cox](https://swtch.com/~rsc/regexp).
+For details on the approach see [articles by Russ Cox](https://swtch.com/~rsc/regexp).
 
 ## Implementation
 
