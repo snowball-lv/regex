@@ -50,8 +50,10 @@ int main(int argc, char **argv) {
     regexcompile(&re, argv[i + 0]);
     Match m;
     int r = regexmatch(&re, &m, argv[i + 1]);
-    if (r && !silent)
-        printf("%.*s\n", m.len, m.start);
+    if (r && !silent) {
+        if (m.token) printf("%.*s %i\n", m.len, m.start, m.token);
+        else printf("%.*s\n", m.len, m.start);
+    }
     if (printdot) regexdumpdot(&re, fdot ? fdot : stdout);
     if (printins) regexdumpins(&re, fins ? fins : stdout);
     if (fdot) fclose(fdot);

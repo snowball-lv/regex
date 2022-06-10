@@ -24,14 +24,22 @@ typedef struct {
     int *nlist;
     int nlistsz;
     char *added;
+    int lasttok;
 } RegEx;
 
 typedef struct {
     char *start;
     int len;
+    int token;
 } Match;
 
+typedef struct {
+    char *pattern;
+    int token;
+} TokDef;
+
 void regexcompile(RegEx *re, char *src);
+void regexcompile2(RegEx *re, TokDef *defs);
 int regexmatch(RegEx *re, Match *m, char *str);
 void regexdumpdot(RegEx *re, FILE *f);
 void regexdumpins(RegEx *re, FILE *f);

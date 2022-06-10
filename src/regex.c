@@ -30,6 +30,7 @@ enum {
     OP_SPLIT,
     OP_JMP,
     OP_MATCH,
+    OP_MATCH_TOKEN,
 };
 
 typedef struct Node Node;
@@ -265,6 +266,7 @@ static Node *conchars(Char *cs, int num) {
 }
 
 static Node *escape(RegEx *re) {
+    char buf[16];
     Node *n = newnode(OP_CHAR);
     CodePoint cp = peekc(re);
     advance(re);
@@ -305,6 +307,18 @@ static Node *escape(RegEx *re) {
         n->l = conchars((Char[]){
             {' '}, {'\t'}, {'\r'}, {'\n'}, {'\v'}, {'\f'}},
             6);
+        break;
+    case 'm':
+        n = newnode(OP_MATCH_TOKEN);
+        n->c.cp = 0; // store the token in Char codepoint
+        char *ptr = buf;
+        *ptr = 0;
+        while (isdigit(peekc(re))) {
+            *ptr++ = peekc(re);
+            advance(re);
+        }
+        *ptr = 0;
+        n->c.cp = atoi(buf);
         break;
     default:
         if (isspec(cp)) {
@@ -447,6 +461,9 @@ static void gen(RegEx *re, Node *n) {
     case OP_CHAR:
         re->ins[re->numins++] = (Ins){OP_CHAR, n->c};
         break;
+    case OP_MATCH_TOKEN:
+        re->ins[re->numins++] = (Ins){OP_MATCH_TOKEN, n->c};
+        break;
     case OP_NOP: break;
     default:
         printf("*** can't generate node [%i]\n", n->type);
@@ -458,6 +475,7 @@ static void deltree(Node *tree) {
     switch (tree->type) {
     case OP_CHAR:
     case OP_NOP:
+    case OP_MATCH_TOKEN:
         break;
     case OP_KLEENE:
     case OP_QUESTION:
@@ -505,6 +523,10 @@ static int addstate(RegEx *re, int state, int atstart, int atend) {
     else if (i->op == OP_MATCH) {
         return 1;
     }
+    else if (i->op == OP_MATCH_TOKEN) {
+        re->lasttok = i->c.cp;
+        return addstate(re, state + 1, atstart, atend);
+    }
     re->nlist[re->nlistsz++] = state;
     return 0;
 }
@@ -520,8 +542,9 @@ static void swap(RegEx *re) {
 
 void regexcompile(RegEx *re, char *src) {
     initregex(re);
-    re->src = src;
-    re->pos = src;
+    re->src = malloc(strlen(src) + 1);
+    strcpy(re->src, src);
+    re->pos = re->src;
     advance(re);
     Node *tree = alt(re);
     // dumptree(tree);
@@ -535,6 +558,23 @@ void regexcompile(RegEx *re, char *src) {
     re->added = malloc(re->numins);
 }
 
+void regexcompile2(RegEx *re, TokDef *defs) {
+    int srclen = 0;
+    int numtoks = 0;
+    for (TokDef *td = defs; td->pattern; td++) {
+        srclen += strlen(td->pattern);
+        numtoks++;
+    }
+    char *src = malloc(srclen + numtoks * 16); // some very generous amount
+    char *ptr = src;
+    for (int i = 0; i < numtoks; i++) {
+        if (i > 0) ptr += sprintf(ptr, "|");
+        ptr += sprintf(ptr, "(%s)\\m%i", defs[i].pattern, defs[i].token);
+    }
+    regexcompile(re, src);
+    free(src);
+}
+
 static int cmatch(Char c, CodePoint cp) {
     if (c.cp == SP_CP_ANY) return 1;
     if (c.range) return c.cp <= cp && cp <= c.range;
@@ -542,13 +582,14 @@ static int cmatch(Char c, CodePoint cp) {
 }
 
 int regexmatch(RegEx *re, Match *m, char *str) {
+    re->lasttok = 0;
     char *start = str;
     int atstart = 1;
     int matched = 0;
     resetmatcher(re);
     if (addstate(re, 0, atstart, !*str)) {
         matched = 1;
-        *m = (Match){str, 0};
+        *m = (Match){str, 0, re->lasttok};
     }
     swap(re);
     CodePoint cp = 0;
@@ -564,7 +605,7 @@ int regexmatch(RegEx *re, Match *m, char *str) {
                     int len = str - start;
                     if (!matched || len > m->len) {
                         matched = 1;
-                        *m = (Match){start, str - start};
+                        *m = (Match){start, str - start, re->lasttok};
                     }
                 }
                 break;
@@ -581,7 +622,7 @@ int regexmatch(RegEx *re, Match *m, char *str) {
                         int len = str - start;
                         if (!matched || len > m->len) {
                             matched = 1;
-                            *m = (Match){start, str - start};
+                            *m = (Match){start, str - start, re->lasttok};
                         }
                     }
                 }
@@ -615,6 +656,10 @@ void regexdumpdot(RegEx *re, FILE *f) {
             break;
         case OP_MATCH:
             fprintf(f, "%i [label=\"S%i\" shape=doublecircle];\n", k, k);
+            break;
+        case OP_MATCH_TOKEN:
+            fprintf(f, "%i [label=\"Token|%i\" shape=record];\n", k, i->c.cp);
+            fprintf(f, "%i -> %i;\n", k, k + 1);
             break;
         case OP_JMP:
             fprintf(f, "%i -> %i;\n", k, i->a);
@@ -663,6 +708,9 @@ void regexdumpins(RegEx *re, FILE *f) {
         case OP_MATCH:
             fprintf(f, "match\n");
             break;
+        case OP_MATCH_TOKEN:
+            fprintf(f, "token %i\n", i->c.cp);
+            break;
         case OP_BRACKET:
             fprintf(f, "bracket %s%i\n", i->b ? "!" : "", i->a);
             break;
@@ -678,5 +726,6 @@ void freeregex(RegEx *re) {
     if (re->clist) free(re->clist);
     if (re->nlist) free(re->nlist);
     if (re->added) free(re->added);
+    if (re->src) free(re->src);
     initregex(re);
 }
