@@ -8,7 +8,7 @@ Compiling a pattern transforms it into an AST which in turn is used to generate 
 ## What's missing
 
 - `{}` operator
-- All matches are anchored at first input character
+- All matches are anchored at the first input character
 - Escape sequence for specifying code points
 - Tests!
 
